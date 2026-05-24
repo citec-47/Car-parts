@@ -1,0 +1,225 @@
+// RevParts — Prisma schema
+// Postgres (Neon). Money stored in integer cents to avoid floating point issues.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- Catalog ----------
+
+model Category {
+  id           String     @id @default(cuid())
+  name         String
+  slug         String     @unique
+  description  String?
+  iconKey      String?
+  displayOrder Int        @default(0)
+
+  parentId String?
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryHierarchy")
+
+  products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
+  @@index([parentId])
+}
+
+model Product {
+  id             String  @id @default(cuid())
+  name           String
+  slug           String  @unique
+  sku            String  @unique
+  description    String
+  brand          String?
+  priceCents     Int
+  salePriceCents Int?
+  stock          Int     @default(0)
+  rating         Float   @default(0)
+  reviewCount    Int     @default(0)
+  isActive       Boolean @default(true)
+  isFeatured     Boolean @default(false)
+  isHotDeal      Boolean @default(false)
+  hotDealEndsAt  DateTime?
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  images     ProductImage[]
+  fitments   Fitment[]
+  orderItems OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([slug])
+  @@index([isFeatured])
+  @@index([isHotDeal])
+  @@index([isActive])
+}
+
+model ProductImage {
+  id                 String  @id @default(cuid())
+  productId          String
+  product            Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url                String
+  cloudinaryPublicId String?
+  altText            String?
+  displayOrder       Int     @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+}
+
+// ---------- Vehicle fitment ----------
+
+model VehicleMake {
+  id           String         @id @default(cuid())
+  name         String         @unique
+  slug         String         @unique
+  displayOrder Int            @default(0)
+  models       VehicleModel[]
+  fitments     Fitment[]
+}
+
+model VehicleModel {
+  id       String        @id @default(cuid())
+  makeId   String
+  make     VehicleMake   @relation(fields: [makeId], references: [id])
+  name     String
+  slug     String
+  years    VehicleYear[]
+  fitments Fitment[]
+
+  @@unique([makeId, slug])
+  @@index([makeId])
+}
+
+model VehicleYear {
+  id       String          @id @default(cuid())
+  modelId  String
+  model    VehicleModel    @relation(fields: [modelId], references: [id])
+  year     Int
+  engines  VehicleEngine[]
+  fitments Fitment[]
+
+  @@unique([modelId, year])
+  @@index([modelId])
+}
+
+model VehicleEngine {
+  id       String       @id @default(cuid())
+  yearId   String
+  year     VehicleYear  @relation(fields: [yearId], references: [id])
+  name     String
+  fitments Fitment[]
+
+  @@unique([yearId, name])
+  @@index([yearId])
+}
+
+model Fitment {
+  id        String         @id @default(cuid())
+  productId String
+  product   Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  makeId    String?
+  make      VehicleMake?   @relation(fields: [makeId], references: [id])
+  modelId   String?
+  model     VehicleModel?  @relation(fields: [modelId], references: [id])
+  yearId    String?
+  year      VehicleYear?   @relation(fields: [yearId], references: [id])
+  engineId  String?
+  engine    VehicleEngine? @relation(fields: [engineId], references: [id])
+
+  @@index([productId])
+  @@index([makeId, modelId, yearId, engineId])
+}
+
+// ---------- Orders (guest checkout in v1) ----------
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  REFUNDED
+  FAILED
+}
+
+model Order {
+  id               String        @id @default(cuid())
+  orderNumber      String        @unique
+  email            String
+  customerName     String
+  phone            String?
+  shippingAddress  Json
+  subtotalCents    Int
+  shippingCents    Int
+  taxCents         Int           @default(0)
+  totalCents       Int
+  status           OrderStatus   @default(PENDING)
+  paymentStatus    PaymentStatus @default(UNPAID)
+  paymentMethod    String        @default("placeholder")
+  paymentReference String?
+  notes            String?
+
+  items OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id             String   @id @default(cuid())
+  orderId        String
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId      String?
+  product        Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productName    String
+  productSku     String
+  productImage   String?
+  unitPriceCents Int
+  quantity       Int
+  lineTotalCents Int
+
+  @@index([orderId])
+}
+
+// ---------- Visitor analytics ----------
+
+model Visit {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  ipHash      String
+  country     String?
+  countryCode String?
+  region      String?
+  city        String?
+  path        String
+  userAgent   String?
+  referer     String?
+
+  @@index([createdAt])
+  @@index([countryCode])
+  @@index([ipHash, createdAt])
+}
