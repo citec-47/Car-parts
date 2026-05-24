@@ -1,0 +1,4 @@
+ID,Type,SKU,Name,Published,"Is featured?","Visibility in catalog","Short description",Description,"In stock?",Stock,"Regular price","Sale price",Categories,Tags,Images,Brands
+101,simple,K20A-EG6,"Honda K20A Engine — Type R Spec",1,1,visible,"JDM 2.0L i-VTEC pulled from EP3","Real K20A 2.0L i-VTEC with 220hp, low miles, compression-tested.",1,3,3499.99,2999.99,"Engines > JDM Engines",jdm,"https://example.com/img/k20a.jpg",Honda
+102,simple,SR20DET-S14,"Nissan SR20DET S14 Front-Sump",1,0,visible,"S14 Silvia black-top","SR20DET S14 black-top, 2.0L turbo, 220hp at the crank.",1,1,2899.00,,"Engines > JDM Engines",jdm,"https://example.com/img/sr20det.jpg",Nissan
+103,simple,2JZ-GTE-NA,"Toyota 2JZ-GTE Non-VVTi Long Block",0,0,hidden,"JZA80 powerplant","Iron-block 2JZ-GTE non-VVTi, twin-turbo capable, long block only.",1,0,4500.00,,"Engines > JDM Engines, Performance",jdm,"https://example.com/img/2jz1.jpg,https://example.com/img/2jz2.jpg",Toyota

@@ -57,3 +57,7 @@ desktop.ini
 
 # Claude Code workspace
 .claude/
+
+# Product import — the real CSV is your private data, the .example one is committed
+/import/products.csv
+/import/uploads/
