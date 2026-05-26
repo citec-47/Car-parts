@@ -12,6 +12,13 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "res.cloudinary.com" },
     ],
   },
+  experimental: {
+    serverActions: {
+      // Product image uploads can exceed the default 1 MB. 20 MB covers a few
+      // full-resolution phone photos in a single publish.
+      bodySizeLimit: "20mb",
+    },
+  },
 };
 
 export default nextConfig;

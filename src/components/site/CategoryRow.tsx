@@ -1,15 +1,33 @@
 import Link from "next/link";
-import { HEADER_CATEGORIES } from "@/lib/constants";
+import { Boxes } from "lucide-react";
+import { prisma } from "@/lib/db";
 import { CATEGORY_ICONS } from "@/lib/category-icons";
+import type { IconKey } from "@/lib/constants";
 
-export function CategoryRow({ activeSlug }: { activeSlug?: string }) {
-  const effectiveActive = activeSlug ?? HEADER_CATEGORIES[0].slug;
+export async function CategoryRow({ activeSlug }: { activeSlug?: string }) {
+  let categories: { name: string; slug: string; iconKey: string | null }[] = [];
+  try {
+    categories = await prisma.category.findMany({
+      orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
+      select: { name: true, slug: true, iconKey: true },
+    });
+  } catch (err) {
+    console.error("[CategoryRow] DB lookup failed:", err);
+    return null;
+  }
+
+  if (categories.length === 0) return null;
+
+  const effectiveActive = activeSlug ?? categories[0]?.slug;
+
   return (
     <div className="w-full border-b border-border bg-background">
       <div className="mx-auto max-w-7xl px-4">
         <div className="flex gap-1 overflow-x-auto py-2 -mx-1 scrollbar-thin">
-          {HEADER_CATEGORIES.map((cat) => {
-            const Icon = CATEGORY_ICONS[cat.iconKey];
+          {categories.map((cat) => {
+            const Icon = cat.iconKey && CATEGORY_ICONS[cat.iconKey as IconKey]
+              ? CATEGORY_ICONS[cat.iconKey as IconKey]
+              : Boxes;
             const isActive = effectiveActive === cat.slug;
             return (
               <Link

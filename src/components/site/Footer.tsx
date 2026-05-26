@@ -1,9 +1,22 @@
 import Link from "next/link";
 import { Logo } from "./Logo";
-import { SITE, HEADER_CATEGORIES } from "@/lib/constants";
+import { SITE } from "@/lib/constants";
 import { Mail, Phone } from "lucide-react";
+import { prisma } from "@/lib/db";
 
-export function Footer() {
+export async function Footer() {
+  let footerCategories: { name: string; slug: string }[] = [];
+  try {
+    footerCategories = await prisma.category.findMany({
+      where: { showInFooter: true },
+      orderBy: [{ displayOrder: "asc" }, { name: "asc" }],
+      select: { name: true, slug: true },
+      take: 8,
+    });
+  } catch (err) {
+    console.error("[Footer] DB lookup failed:", err);
+  }
+
   return (
     <footer className="mt-16 border-t border-border bg-topbar text-topbar-foreground">
       <div className="mx-auto max-w-7xl px-4 py-12 grid gap-10 md:grid-cols-2 lg:grid-cols-4">
@@ -23,18 +36,24 @@ export function Footer() {
         </div>
         <div>
           <h4 className="text-sm font-bold uppercase tracking-wide text-background">Shop</h4>
-          <ul className="mt-4 space-y-2 text-sm">
-            {HEADER_CATEGORIES.slice(0, 6).map((c) => (
-              <li key={c.slug}>
-                <Link
-                  href={`/categories/${c.slug}`}
-                  className="text-topbar-foreground/80 hover:text-brand transition-colors"
-                >
-                  {c.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          {footerCategories.length === 0 ? (
+            <p className="mt-4 text-sm text-topbar-foreground/60">
+              No categories listed.
+            </p>
+          ) : (
+            <ul className="mt-4 space-y-2 text-sm">
+              {footerCategories.map((c) => (
+                <li key={c.slug}>
+                  <Link
+                    href={`/categories/${c.slug}`}
+                    className="text-topbar-foreground/80 hover:text-brand transition-colors"
+                  >
+                    {c.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
         <div>
           <h4 className="text-sm font-bold uppercase tracking-wide text-background">Help</h4>

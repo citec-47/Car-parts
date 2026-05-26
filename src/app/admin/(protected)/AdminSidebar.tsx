@@ -9,8 +9,10 @@ import {
   LayoutDashboard,
   LogOut,
   Package,
+  Plus,
   ShoppingBag,
   Tags,
+  Trash2,
 } from "lucide-react";
 import { logoutAdmin } from "../actions";
 
@@ -78,6 +80,30 @@ export function AdminSidebar({ categories }: { categories: Category[] }) {
                   }`}
                 >
                   All categories
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/admin/categories/new"
+                  className={`flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs hover:bg-muted ${
+                    pathname === "/admin/categories/new"
+                      ? "bg-brand/10 text-brand font-medium"
+                      : "text-brand hover:text-brand"
+                  }`}
+                >
+                  <Plus className="h-3 w-3" /> Add category
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/admin/categories/delete"
+                  className={`flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs hover:bg-muted ${
+                    pathname === "/admin/categories/delete"
+                      ? "bg-destructive/10 text-destructive font-medium"
+                      : "text-destructive hover:text-destructive"
+                  }`}
+                >
+                  <Trash2 className="h-3 w-3" /> Delete category
                 </Link>
               </li>
               {categories.map((c) => (

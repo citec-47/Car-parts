@@ -64,7 +64,7 @@ export async function createProduct(formData: FormData) {
   const files = formData.getAll("images").filter((f): f is File => f instanceof File && f.size > 0);
   const uploaded = await Promise.all(files.map(uploadImage));
 
-  const product = await prisma.product.create({
+  await prisma.product.create({
     data: {
       name,
       slug: slugify(name) + "-" + Date.now().toString(36),
@@ -89,7 +89,7 @@ export async function createProduct(formData: FormData) {
   });
 
   bumpHome();
-  redirect(`/admin/products/${product.id}/edit?ok=created`);
+  redirect(`/admin/products?ok=created&name=${encodeURIComponent(name)}`);
 }
 
 export async function updateProduct(productId: string, formData: FormData) {
@@ -143,7 +143,7 @@ export async function updateProduct(productId: string, formData: FormData) {
 
   bumpHome();
   revalidatePath(`/admin/products/${productId}/edit`);
-  redirect(`/admin/products/${productId}/edit?ok=saved`);
+  redirect(`/admin/products?ok=saved&name=${encodeURIComponent(name)}`);
 }
 
 export async function deleteProduct(formData: FormData) {
@@ -193,6 +193,109 @@ export async function togglePublishFlag(formData: FormData) {
     data: { [field]: !product[field as keyof typeof product] },
   });
   bumpHome();
+}
+
+// ---------- Categories ----------
+
+function bumpCategories() {
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/admin/categories");
+  revalidatePath("/admin/products");
+  revalidatePath("/shop");
+}
+
+async function uniqueSlug(base: string, excludeId?: string): Promise<string> {
+  let slug = base || "category";
+  let n = 1;
+  while (true) {
+    const existing = await prisma.category.findUnique({ where: { slug } });
+    if (!existing || existing.id === excludeId) return slug;
+    n += 1;
+    slug = `${base}-${n}`;
+  }
+}
+
+export async function createCategory(formData: FormData) {
+  const name = String(formData.get("name") ?? "").trim();
+  const iconKey = String(formData.get("iconKey") ?? "").trim() || null;
+  const description = String(formData.get("description") ?? "").trim() || null;
+  const orderRaw = String(formData.get("displayOrder") ?? "");
+  const showInFooter = formData.get("showInFooter") === "on";
+
+  if (!name) throw new Error("Name is required");
+
+  const slug = await uniqueSlug(slugify(name));
+  const displayOrder = orderRaw
+    ? Math.max(0, Math.floor(Number(orderRaw)))
+    : (await prisma.category.count()) * 10;
+
+  await prisma.category.create({
+    data: { name, slug, iconKey, description, displayOrder, showInFooter },
+  });
+
+  bumpCategories();
+  redirect("/admin/categories?ok=created");
+}
+
+export async function updateCategory(categoryId: string, formData: FormData) {
+  const name = String(formData.get("name") ?? "").trim();
+  const iconKey = String(formData.get("iconKey") ?? "").trim() || null;
+  const description = String(formData.get("description") ?? "").trim() || null;
+  const orderRaw = String(formData.get("displayOrder") ?? "");
+  const showInFooter = formData.get("showInFooter") === "on";
+
+  if (!name) throw new Error("Name is required");
+
+  const existing = await prisma.category.findUnique({ where: { id: categoryId } });
+  if (!existing) throw new Error("Category not found");
+
+  const nextSlug =
+    slugify(name) === slugify(existing.name)
+      ? existing.slug
+      : await uniqueSlug(slugify(name), categoryId);
+
+  await prisma.category.update({
+    where: { id: categoryId },
+    data: {
+      name,
+      slug: nextSlug,
+      iconKey,
+      description,
+      showInFooter,
+      displayOrder: orderRaw
+        ? Math.max(0, Math.floor(Number(orderRaw)))
+        : existing.displayOrder,
+    },
+  });
+
+  bumpCategories();
+  redirect(`/admin/categories/${categoryId}/edit?ok=saved`);
+}
+
+export async function deleteCategory(formData: FormData) {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  // Gather Cloudinary public IDs from all images of all products in this category
+  // BEFORE the cascade delete wipes them, so we can remove the orphaned images
+  // from Cloudinary too.
+  const images = await prisma.productImage.findMany({
+    where: { product: { categoryId: id }, cloudinaryPublicId: { not: null } },
+    select: { cloudinaryPublicId: true },
+  });
+
+  await prisma.category.delete({ where: { id } });
+
+  // Fire-and-forget Cloudinary cleanup. Failures here shouldn't unwind the delete.
+  void Promise.allSettled(
+    images.map((i) =>
+      cloudinary.uploader.destroy(i.cloudinaryPublicId!, { invalidate: true }),
+    ),
+  );
+
+  bumpCategories();
+  redirect("/admin/categories?ok=deleted");
 }
 
 export async function updateOrderStatus(formData: FormData) {

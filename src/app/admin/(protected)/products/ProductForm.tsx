@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import { useState, useTransition } from "react";
-import { Trash2, Upload } from "lucide-react";
+import { Upload, X } from "lucide-react";
+import { DeleteImageButton } from "./DeleteImageButton";
 
 type Category = { id: string; name: string };
 
@@ -29,25 +30,58 @@ export function ProductForm({
   categories,
   action,
   submitLabel,
-  onDeleteImage,
 }: {
   initial: ProductFormInitial;
   categories: Category[];
   action: (formData: FormData) => Promise<void> | void;
   submitLabel: string;
-  onDeleteImage?: (formData: FormData) => Promise<void> | void;
 }) {
   const [pending, startTransition] = useTransition();
   const [files, setFiles] = useState<File[]>([]);
 
-  const previews = files.map((f) => ({ name: f.name, src: URL.createObjectURL(f) }));
+  const previews = files.map((f, i) => ({
+    key: `${i}-${f.name}-${f.size}`,
+    name: f.name,
+    src: URL.createObjectURL(f),
+  }));
+
+  const addFiles = (incoming: File[]) => {
+    if (incoming.length === 0) return;
+    setFiles((prev) => [...prev, ...incoming]);
+  };
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const onPaste = (e: React.ClipboardEvent<HTMLFormElement>) => {
+    const items = Array.from(e.clipboardData.items);
+    const imageFiles = items
+      .filter((i) => i.kind === "file" && i.type.startsWith("image/"))
+      .map((i) => i.getAsFile())
+      .filter((f): f is File => f != null);
+    if (imageFiles.length > 0) {
+      e.preventDefault();
+      addFiles(imageFiles);
+    }
+  };
 
   const onSubmit = (formData: FormData) => {
+    // React state is the source of truth — replace any entries the file input
+    // contributed with the deduplicated list from state (which includes pastes).
+    formData.delete("images");
+    for (const file of files) {
+      formData.append("images", file);
+    }
     startTransition(() => action(formData));
   };
 
   return (
-    <form action={onSubmit} className="grid gap-6 lg:grid-cols-3">
+    <form
+      action={onSubmit}
+      onPaste={onPaste}
+      className="grid gap-6 lg:grid-cols-3"
+    >
       <div className="space-y-6 lg:col-span-2">
         <section className="rounded-lg border border-border bg-card p-5">
           <h3 className="text-sm font-semibold mb-4">Basics</h3>
@@ -107,50 +141,67 @@ export function ProductForm({
               {initial.images.map((img) => (
                 <div key={img.id} className="relative aspect-square overflow-hidden rounded-md border border-border bg-muted">
                   <Image src={img.url} alt="" fill sizes="160px" className="object-cover" />
-                  {onDeleteImage ? (
-                    <form action={onDeleteImage} className="absolute right-1 top-1">
-                      <input type="hidden" name="imageId" value={img.id} />
-                      <input type="hidden" name="productId" value={initial.id ?? ""} />
-                      <button
-                        type="submit"
-                        title="Remove image"
-                        className="rounded-md bg-black/60 p-1 text-white hover:bg-black/80"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </form>
+                  {initial.id ? (
+                    <DeleteImageButton imageId={img.id} productId={initial.id} />
                   ) : null}
                 </div>
               ))}
             </div>
           ) : null}
 
-          <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-border bg-background py-8 hover:bg-muted/40">
+          <label className="flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-md border-2 border-dashed border-border bg-background py-8 hover:bg-muted/40">
             <Upload className="h-5 w-5 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">
               Click to add image(s)
+            </span>
+            <span className="text-xs text-muted-foreground/80">
+              or paste from clipboard (Ctrl + V) anywhere on this form
             </span>
             <input
               type="file"
               name="images"
               accept="image/*"
               multiple
-              onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+              onChange={(e) => {
+                addFiles(Array.from(e.target.files ?? []));
+                // Reset so the same file can be re-picked if removed.
+                e.target.value = "";
+              }}
               className="sr-only"
             />
           </label>
 
           {previews.length ? (
             <div className="mt-4 grid gap-3 grid-cols-2 sm:grid-cols-4">
-              {previews.map((p) => (
-                <div key={p.src} className="relative aspect-square overflow-hidden rounded-md border border-border bg-muted">
-                  <Image src={p.src} alt={p.name} fill sizes="160px" className="object-cover" unoptimized />
+              {previews.map((p, i) => (
+                <div
+                  key={p.key}
+                  className="group relative aspect-square overflow-hidden rounded-md border border-border bg-muted"
+                >
+                  <Image
+                    src={p.src}
+                    alt={p.name}
+                    fill
+                    sizes="160px"
+                    className="object-cover"
+                    unoptimized
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeFile(i)}
+                    aria-label="Remove image"
+                    title="Remove"
+                    className="absolute right-1 top-1 rounded-md bg-black/60 p-1 text-white opacity-0 transition-opacity hover:bg-black/80 group-hover:opacity-100"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               ))}
             </div>
           ) : null}
           <p className="mt-2 text-xs text-muted-foreground">
-            New images upload to Cloudinary on save.
+            New images upload to Cloudinary on publish.
+            {previews.length > 0 ? ` (${previews.length} queued)` : ""}
           </p>
         </section>
       </div>
@@ -197,7 +248,7 @@ export function ProductForm({
           disabled={pending}
           className="w-full rounded-md bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground hover:bg-brand/90 disabled:opacity-60"
         >
-          {pending ? "Saving…" : submitLabel}
+          {pending ? "Publishing…" : submitLabel}
         </button>
       </aside>
     </form>

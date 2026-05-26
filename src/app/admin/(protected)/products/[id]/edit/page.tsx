@@ -1,24 +1,20 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/db";
-import { deleteProduct, deleteProductImage, updateProduct } from "../../../actions";
+import { deleteProduct, updateProduct } from "../../../actions";
 import { ProductForm } from "../../ProductForm";
 
 export const dynamic = "force-dynamic";
 
 type Params = Promise<{ id: string }>;
-type SearchParams = Promise<{ ok?: string }>;
 
 export default async function EditProductPage({
   params,
-  searchParams,
 }: {
   params: Params;
-  searchParams: SearchParams;
 }) {
   const { id } = await params;
-  const { ok } = await searchParams;
 
   const [product, categories] = await Promise.all([
     prisma.product.findUnique({
@@ -59,18 +55,10 @@ export default async function EditProductPage({
         </form>
       </div>
 
-      {ok ? (
-        <div className="mb-4 inline-flex items-center gap-2 rounded-md bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-          <CheckCircle2 className="h-4 w-4" />
-          {ok === "created" ? "Product created." : "Changes saved."}
-        </div>
-      ) : null}
-
       <ProductForm
         categories={categories}
         action={update}
-        onDeleteImage={deleteProductImage}
-        submitLabel="Save changes"
+        submitLabel="Publish changes"
         initial={{
           id: product.id,
           name: product.name,

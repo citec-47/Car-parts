@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Pencil, Search, Star, Trash2, Zap } from "lucide-react";
+import { CheckCircle2, Pencil, Search, Star, Trash2, Zap } from "lucide-react";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { formatPrice } from "@/lib/format";
@@ -12,6 +12,8 @@ type SearchParams = Promise<{
   q?: string;
   category?: string;
   lowStock?: string;
+  ok?: string;
+  name?: string;
 }>;
 
 const LOW_STOCK_THRESHOLD = 10;
@@ -25,6 +27,8 @@ export default async function AdminProductsListPage({
   const q = (sp.q ?? "").trim();
   const categorySlug = sp.category ?? "";
   const lowStock = sp.lowStock === "1";
+  const ok = sp.ok;
+  const okName = sp.name;
 
   const where: Prisma.ProductWhereInput = {};
   if (q) {
@@ -63,6 +67,15 @@ export default async function AdminProductsListPage({
           + New product
         </Link>
       </div>
+
+      {ok ? (
+        <div className="mb-4 inline-flex items-center gap-2 rounded-md bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+          <CheckCircle2 className="h-4 w-4" />
+          {ok === "created"
+            ? `Published "${okName ?? "product"}" — now live in the shop.`
+            : `Saved "${okName ?? "product"}".`}
+        </div>
+      ) : null}
 
       <form className="mb-4 flex flex-wrap items-center gap-2" action="/admin/products">
         <div className="relative grow sm:grow-0">

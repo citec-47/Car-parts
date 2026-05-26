@@ -1,13 +1,16 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight, Check, Truck, ShieldCheck, RefreshCw } from "lucide-react";
-import { getProductBySlug, getProductsByCategory } from "@/lib/data";
+import {
+  getCategoryBySlug,
+  getProductBySlug,
+  getProductsByCategory,
+} from "@/lib/data";
 import { formatPrice, calculateDiscountPercent } from "@/lib/format";
 import { StarRating } from "@/components/product/StarRating";
 import { ProductDetailActions } from "@/components/product/ProductDetailActions";
 import { ProductGrid } from "@/components/product/ProductGrid";
-import { HEADER_CATEGORIES } from "@/lib/constants";
+import { ProductGallery } from "@/components/product/ProductGallery";
 
 type RouteParams = Promise<{ slug: string }>;
 
@@ -22,11 +25,11 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
   const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const category = HEADER_CATEGORIES.find((c) => c.slug === product.categorySlug);
-  const related = (await getProductsByCategory(product.categorySlug)).filter(
-    (p) => p.id !== product.id,
-  );
-  const img = product.images[0];
+  const [category, relatedAll] = await Promise.all([
+    getCategoryBySlug(product.categorySlug),
+    getProductsByCategory(product.categorySlug),
+  ]);
+  const related = relatedAll.filter((p) => p.id !== product.id);
   const discount = product.salePriceCents
     ? calculateDiscountPercent(product.priceCents, product.salePriceCents)
     : 0;
@@ -51,25 +54,11 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
       </nav>
 
       <div className="grid gap-10 lg:grid-cols-2">
-        <div className="relative aspect-square w-full overflow-hidden rounded-lg border border-border bg-card">
-          {img ? (
-            <Image
-              src={img.url}
-              alt={img.altText ?? product.name}
-              fill
-              sizes="(max-width: 1024px) 100vw, 600px"
-              className="object-cover"
-              priority
-            />
-          ) : (
-            <div className="h-full w-full bg-muted" />
-          )}
-          {discount > 0 ? (
-            <span className="absolute left-4 top-4 inline-flex items-center rounded-sm bg-brand px-2.5 py-1 text-xs font-bold text-brand-foreground uppercase">
-              -{discount}%
-            </span>
-          ) : null}
-        </div>
+        <ProductGallery
+          images={product.images}
+          name={product.name}
+          discount={discount}
+        />
 
         <div>
           {product.brand ? (

@@ -92,8 +92,9 @@ export async function getProductsByCategory(slug: string): Promise<Product[]> {
 }
 
 export async function getFeaturedProducts(): Promise<Product[]> {
+  // Exclude hot deals — they get their own slot on the home page.
   const rows = await prisma.product.findMany({
-    where: { isActive: true, isFeatured: true },
+    where: { isActive: true, isFeatured: true, isHotDeal: false },
     include: productInclude,
     orderBy: { createdAt: "desc" },
   });

@@ -18,6 +18,7 @@ model Category {
   description  String?
   iconKey      String?
   displayOrder Int        @default(0)
+  showInFooter Boolean    @default(true)
 
   parentId String?
   parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
@@ -50,7 +51,7 @@ model Product {
   hotDealEndsAt  DateTime?
 
   categoryId String
-  category   Category @relation(fields: [categoryId], references: [id])
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   images     ProductImage[]
   fitments   Fitment[]

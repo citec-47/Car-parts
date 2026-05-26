@@ -29,7 +29,7 @@ export default async function NewProductPage() {
       <ProductForm
         categories={categories}
         action={createProduct}
-        submitLabel="Create product"
+        submitLabel="Publish product"
         initial={{
           name: "",
           sku: "",
