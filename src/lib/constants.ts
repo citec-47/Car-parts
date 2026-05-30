@@ -83,7 +83,9 @@ export const TRUST_BADGES = [
 
 export const MAIN_NAV = [
   { name: "Home", href: "/" },
-  { name: "Shop", href: "/shop" },
-  { name: "Garage", href: "/garage" },
+  { name: "About us", href: "/about" },
+  { name: "Inventory", href: "/inventory" },
   { name: "Categories", href: "/categories" },
+  { name: "Quotation", href: "/quotation" },
+  { name: "Contact us", href: "/contact" },
 ] as const;
