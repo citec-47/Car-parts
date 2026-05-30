@@ -44,6 +44,7 @@ export function ProductForm({
 }) {
   const [pending, startTransition] = useTransition();
   const [files, setFiles] = useState<File[]>([]);
+  const [pasteError, setPasteError] = useState<string | null>(null);
   const [specs, setSpecs] = useState<{ label: string; value: string }[]>(
     initial.specs.length > 0 ? initial.specs : [{ label: "", value: "" }],
   );
@@ -71,6 +72,7 @@ export function ProductForm({
   };
 
   const onPaste = (e: React.ClipboardEvent<HTMLFormElement>) => {
+    // Case 1: an actual image was copied (screenshot, "Copy image", a file).
     const items = Array.from(e.clipboardData.items);
     const imageFiles = items
       .filter((i) => i.kind === "file" && i.type.startsWith("image/"))
@@ -78,9 +80,47 @@ export function ProductForm({
       .filter((f): f is File => f != null);
     if (imageFiles.length > 0) {
       e.preventDefault();
+      setPasteError(null);
       addFiles(imageFiles);
+      return;
+    }
+
+    // Case 2: an image URL was pasted ("Copy image address"). Fetch it into a
+    // File so it goes through the same Cloudinary upload on submit.
+    const text = e.clipboardData.getData("text").trim();
+    if (/^https?:\/\/\S+$/i.test(text)) {
+      const looksLikeImage = /\.(png|jpe?g|gif|webp|avif|bmp|svg)(\?\S*)?$/i.test(text);
+      const target = e.target as HTMLElement;
+      const isTextField =
+        target.tagName === "INPUT" || target.tagName === "TEXTAREA";
+      // Only hijack the paste when it's clearly an image URL, or when it's not
+      // landing in a text field (so URLs in description/SKU still paste normally).
+      if (looksLikeImage || !isTextField) {
+        e.preventDefault();
+        void fetchUrlAsFile(text);
+      }
     }
   };
+
+  async function fetchUrlAsFile(url: string) {
+    setPasteError(null);
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      if (!blob.type.startsWith("image/")) {
+        throw new Error("That URL isn't an image");
+      }
+      const ext = blob.type.split("/")[1]?.split("+")[0] || "png";
+      const base = url.split("/").pop()?.split("?")[0] || "pasted-image";
+      const name = /\.[a-z0-9]+$/i.test(base) ? base : `${base}.${ext}`;
+      addFiles([new File([blob], name, { type: blob.type })]);
+    } catch {
+      setPasteError(
+        "Couldn't load that image URL (the site may block it). Try copying the image itself instead.",
+      );
+    }
+  }
 
   const onSubmit = (formData: FormData) => {
     // React state is the source of truth — replace any entries the file input
@@ -218,7 +258,7 @@ export function ProductForm({
               Click to add image(s)
             </span>
             <span className="text-xs text-muted-foreground/80">
-              or paste from clipboard (Ctrl + V) anywhere on this form
+              or paste an image or image URL (Ctrl + V) anywhere on this form
             </span>
             <input
               type="file"
@@ -266,6 +306,9 @@ export function ProductForm({
             New images upload to Cloudinary on publish.
             {previews.length > 0 ? ` (${previews.length} queued)` : ""}
           </p>
+          {pasteError ? (
+            <p className="mt-1 text-xs text-red-600">{pasteError}</p>
+          ) : null}
         </section>
       </div>
 
