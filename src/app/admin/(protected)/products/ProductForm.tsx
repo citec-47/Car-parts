@@ -1,13 +1,36 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Upload, X } from "lucide-react";
 import { DeleteImageButton } from "./DeleteImageButton";
 
 type Category = { id: string; name: string };
 
 type ExistingImage = { id: string; url: string };
+
+// Fields persisted to the local draft so a refresh / lost connection doesn't
+// wipe what the admin already typed while creating a product.
+const TEXT_FIELDS = [
+  "name",
+  "sku",
+  "brand",
+  "description",
+  "price",
+  "salePrice",
+  "stock",
+  "categoryId",
+] as const;
+const BOOL_FIELDS = [
+  "isActive",
+  "isFeatured",
+  "isHotDeal",
+  "priceOnRequest",
+] as const;
+
+type DraftData = {
+  specs?: { label: string; value: string }[];
+} & Record<string, unknown>;
 
 export type ProductFormInitial = {
   id?: string;
@@ -48,6 +71,97 @@ export function ProductForm({
   const [specs, setSpecs] = useState<{ label: string; value: string }[]>(
     initial.specs.length > 0 ? initial.specs : [{ label: "", value: "" }],
   );
+
+  // Local draft autosave (create mode only). Restores typed data after a page
+  // refresh or a connection drop so the admin can continue where they stopped.
+  const isEditing = Boolean(initial.id);
+  const draftKey = `revparts:product-draft:${flowCategoryId ?? lockedCategoryId ?? "new"}`;
+  const formRef = useRef<HTMLFormElement>(null);
+  const [draftRestored, setDraftRestored] = useState(false);
+
+  const draftIsMeaningful = (data: DraftData) =>
+    TEXT_FIELDS.some(
+      (n) => n !== "categoryId" && String(data[n] ?? "").trim() !== "",
+    ) ||
+    (Array.isArray(data.specs) &&
+      data.specs.some((s) => s.label.trim() !== "" || s.value.trim() !== ""));
+
+  const persistDraft = () => {
+    if (isEditing) return;
+    const form = formRef.current;
+    if (!form) return;
+    const fd = new FormData(form);
+    const data: DraftData = {};
+    for (const name of TEXT_FIELDS) data[name] = String(fd.get(name) ?? "");
+    for (const name of BOOL_FIELDS) data[name] = fd.get(name) === "on";
+    data.specs = specs;
+    try {
+      if (draftIsMeaningful(data)) {
+        localStorage.setItem(draftKey, JSON.stringify(data));
+      } else {
+        localStorage.removeItem(draftKey);
+      }
+    } catch {
+      // Storage unavailable / quota exceeded — fail silently.
+    }
+  };
+
+  const clearDraft = () => {
+    try {
+      localStorage.removeItem(draftKey);
+    } catch {
+      // ignore
+    }
+  };
+
+  const discardDraft = () => {
+    clearDraft();
+    formRef.current?.reset();
+    setSpecs([{ label: "", value: "" }]);
+    setFiles([]);
+    setDraftRestored(false);
+  };
+
+  // Restore any saved draft once, on mount.
+  useEffect(() => {
+    if (isEditing) return;
+    let data: DraftData | null = null;
+    try {
+      data = JSON.parse(localStorage.getItem(draftKey) || "null");
+    } catch {
+      data = null;
+    }
+    if (!data || !draftIsMeaningful(data)) return;
+
+    const form = formRef.current;
+    if (form) {
+      for (const name of TEXT_FIELDS) {
+        const el = form.elements.namedItem(name) as
+          | HTMLInputElement
+          | HTMLSelectElement
+          | HTMLTextAreaElement
+          | null;
+        if (el && typeof data[name] === "string" && data[name]) {
+          el.value = data[name] as string;
+        }
+      }
+      for (const name of BOOL_FIELDS) {
+        const el = form.elements.namedItem(name) as HTMLInputElement | null;
+        if (el && typeof data[name] === "boolean") el.checked = data[name] as boolean;
+      }
+    }
+    if (Array.isArray(data.specs) && data.specs.length > 0) {
+      setSpecs(data.specs);
+    }
+    setDraftRestored(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Spec rows live in React state, so persist whenever they change.
+  useEffect(() => {
+    persistDraft();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [specs]);
 
   const updateSpec = (i: number, field: "label" | "value", v: string) => {
     setSpecs((prev) => prev.map((s, idx) => (idx === i ? { ...s, [field]: v } : s)));
@@ -129,15 +243,44 @@ export function ProductForm({
     for (const file of files) {
       formData.append("images", file);
     }
-    startTransition(() => action(formData));
+    startTransition(async () => {
+      try {
+        await action(formData);
+        // Success (incl. redirect) — drop the saved draft.
+        clearDraft();
+      } catch {
+        // Submission failed (e.g. connection dropped). Keep the draft so the
+        // admin can retry without re-entering everything.
+      }
+    });
   };
 
   return (
     <form
+      ref={formRef}
       action={onSubmit}
       onPaste={onPaste}
+      onChange={persistDraft}
       className="grid gap-6 lg:grid-cols-3"
     >
+      {draftRestored ? (
+        <div className="flex items-start justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 lg:col-span-3">
+          <span>
+            Restored your unsaved draft from this device — pick up where you left
+            off.
+            <span className="mt-0.5 block text-xs text-amber-700">
+              Any images you had attached before need to be re-added.
+            </span>
+          </span>
+          <button
+            type="button"
+            onClick={discardDraft}
+            className="shrink-0 rounded-md border border-amber-400 bg-white px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100"
+          >
+            Discard draft
+          </button>
+        </div>
+      ) : null}
       <div className="space-y-6 lg:col-span-2">
         <section className="rounded-lg border border-border bg-card p-5">
           <h3 className="text-sm font-semibold mb-4">Basics</h3>
@@ -380,6 +523,12 @@ export function ProductForm({
         >
           {pending ? "Publishing…" : submitLabel}
         </button>
+        {!isEditing ? (
+          <p className="text-center text-[11px] text-muted-foreground">
+            Your entries save on this device as you type, so a refresh or lost
+            connection won&apos;t erase them.
+          </p>
+        ) : null}
       </aside>
     </form>
   );
