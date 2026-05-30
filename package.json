@@ -14,7 +14,8 @@
     "import:dry-run": "tsx scripts/import-products.ts --dry-run",
     "import:products": "tsx scripts/import-products.ts",
     "seed:demo": "tsx scripts/seed-demo-catalog.ts",
-    "clear:demo": "tsx scripts/clear-demo-catalog.ts"
+    "clear:demo": "tsx scripts/clear-demo-catalog.ts",
+    "seed:vehicles": "tsx scripts/seed-vehicles-nhtsa.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
