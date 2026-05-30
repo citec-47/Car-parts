@@ -150,10 +150,14 @@ export function ProductForm({
         if (el && typeof data[name] === "boolean") el.checked = data[name] as boolean;
       }
     }
+    // One-time hydration from localStorage on mount; can't be a lazy state
+    // initializer because storage isn't available during SSR.
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (Array.isArray(data.specs) && data.specs.length > 0) {
       setSpecs(data.specs);
     }
     setDraftRestored(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
