@@ -1,6 +1,7 @@
 import { HeroGrid } from "@/components/home/HeroGrid";
 import { VehicleFinder } from "@/components/home/VehicleFinder";
 import { WhyBuyFromUs } from "@/components/home/WhyBuyFromUs";
+import { FeaturedEngineOfTheWeek } from "@/components/home/FeaturedEngineOfTheWeek";
 import { ShopByMake } from "@/components/home/ShopByMake";
 import { PopularCategories } from "@/components/home/PopularCategories";
 import { PromoBanners } from "@/components/home/PromoBanners";
@@ -33,6 +34,7 @@ export default async function Home() {
       <HeroGrid />
       <VehicleFinder makes={makes} models={models} years={years} engines={engines} />
       <WhyBuyFromUs />
+      <FeaturedEngineOfTheWeek />
       <ShopByMake />
       <PopularCategories />
       <PromoBanners />

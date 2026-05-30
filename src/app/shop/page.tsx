@@ -1,6 +1,10 @@
-import { getAllProducts, getProductsByCategory, searchProducts } from "@/lib/data";
+import {
+  getAllProducts,
+  getCategoryBySlug,
+  getProductsByCategory,
+  searchProducts,
+} from "@/lib/data";
 import { ProductGrid } from "@/components/product/ProductGrid";
-import { HEADER_CATEGORIES } from "@/lib/constants";
 
 type SearchParams = Promise<{ q?: string; category?: string }>;
 
@@ -14,7 +18,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SearchP
     const searched = await searchProducts(q);
     products = category ? products.filter((p) => searched.some((s) => s.id === p.id)) : searched;
   }
-  const activeCategory = HEADER_CATEGORIES.find((c) => c.slug === category);
+  const activeCategory = category ? await getCategoryBySlug(category) : null;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10">

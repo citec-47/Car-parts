@@ -2,21 +2,6 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { SectionHeading } from "./SectionHeading";
 
-const FALLBACK_MAKES = [
-  "Honda",
-  "Toyota",
-  "Nissan",
-  "Mazda",
-  "Subaru",
-  "Mitsubishi",
-  "Lexus",
-  "Acura",
-  "Infiniti",
-  "Ford",
-  "Chevrolet",
-  "BMW",
-];
-
 export async function ShopByMake() {
   let makes: { name: string; slug: string }[] = [];
   try {
@@ -30,13 +15,7 @@ export async function ShopByMake() {
     console.error("[ShopByMake] DB lookup failed:", err);
   }
 
-  // Empty DB fallback so the home page still has the section
-  if (makes.length === 0) {
-    makes = FALLBACK_MAKES.map((name) => ({
-      name,
-      slug: name.toLowerCase().replace(/\s+/g, "-"),
-    }));
-  }
+  if (makes.length === 0) return null;
 
   return (
     <section className="mx-auto max-w-7xl px-4 mt-12">

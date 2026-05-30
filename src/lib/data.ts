@@ -117,6 +117,18 @@ export async function getFeaturedProducts(): Promise<Product[]> {
   return rows.map(toProduct);
 }
 
+export async function getEngineOfTheWeek(): Promise<Product | null> {
+  // Most recent active+featured product. The home page treats this as the
+  // store-wide highlight — admin controls which product gets the slot by
+  // marking it Featured (and unmarking older ones if needed).
+  const row = await prisma.product.findFirst({
+    where: { isActive: true, isFeatured: true },
+    include: productInclude,
+    orderBy: { updatedAt: "desc" },
+  });
+  return row ? toProduct(row) : null;
+}
+
 export async function getHotDealProducts(): Promise<Product[]> {
   const rows = await prisma.product.findMany({
     where: { isActive: true, isHotDeal: true },
