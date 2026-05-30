@@ -1,6 +1,7 @@
 import { HeroGrid } from "@/components/home/HeroGrid";
 import { VehicleFinder } from "@/components/home/VehicleFinder";
-import { TrustBadges } from "@/components/home/TrustBadges";
+import { WhyBuyFromUs } from "@/components/home/WhyBuyFromUs";
+import { ShopByMake } from "@/components/home/ShopByMake";
 import { PopularCategories } from "@/components/home/PopularCategories";
 import { PromoBanners } from "@/components/home/PromoBanners";
 import { HotDeals } from "@/components/home/HotDeals";
@@ -31,7 +32,8 @@ export default async function Home() {
     <>
       <HeroGrid />
       <VehicleFinder makes={makes} models={models} years={years} engines={engines} />
-      <TrustBadges />
+      <WhyBuyFromUs />
+      <ShopByMake />
       <PopularCategories />
       <PromoBanners />
       <section className="mx-auto max-w-7xl px-4 mt-12">

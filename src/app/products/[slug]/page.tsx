@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight, Check, Truck, ShieldCheck, RefreshCw } from "lucide-react";
+import { ChevronRight, Check, Truck, ShieldCheck, RefreshCw, Mail } from "lucide-react";
 import {
   getCategoryBySlug,
   getProductBySlug,
@@ -11,6 +11,8 @@ import { StarRating } from "@/components/product/StarRating";
 import { ProductDetailActions } from "@/components/product/ProductDetailActions";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { ProductGallery } from "@/components/product/ProductGallery";
+import { ProductSpecsTable } from "@/components/product/ProductSpecsTable";
+import { ProductDetailTabs } from "@/components/product/ProductDetailTabs";
 
 type RouteParams = Promise<{ slug: string }>;
 
@@ -73,32 +75,60 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
             <StarRating value={product.rating} count={product.reviewCount} />
             <span className="text-xs text-muted-foreground">SKU: {product.sku}</span>
           </div>
-          <div className="mt-5 flex items-baseline gap-3">
-            <span className="text-3xl font-extrabold text-brand">
-              {formatPrice(product.salePriceCents ?? product.priceCents)}
-            </span>
-            {product.salePriceCents ? (
-              <span className="text-base text-muted-foreground line-through">
-                {formatPrice(product.priceCents)}
+
+          {product.specs.length > 0 ? (
+            <div className="mt-5">
+              <ProductSpecsTable specs={product.specs} />
+            </div>
+          ) : null}
+
+          {product.priceOnRequest ? (
+            <div className="mt-6">
+              <p className="text-lg font-bold text-foreground">Contact for Price</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Price varies by inspection. Send us an enquiry and we&apos;ll get back
+                within 24 hours.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-5 flex items-baseline gap-3">
+              <span className="text-3xl font-extrabold text-brand">
+                {formatPrice(product.salePriceCents ?? product.priceCents)}
               </span>
-            ) : null}
-          </div>
+              {product.salePriceCents ? (
+                <span className="text-base text-muted-foreground line-through">
+                  {formatPrice(product.priceCents)}
+                </span>
+              ) : null}
+            </div>
+          )}
+
           <div className="mt-4 flex items-center gap-2 text-sm">
             {inStock ? (
               <>
                 <Check className="h-4 w-4 text-emerald-600" />
                 <span className="text-emerald-700 font-semibold">
-                  In stock — {product.stock} available
+                  In stock — Ships in 24hrs
                 </span>
               </>
             ) : (
               <span className="text-destructive font-semibold">Out of stock</span>
             )}
           </div>
-          <p className="mt-6 text-sm leading-relaxed text-muted-foreground">{product.description}</p>
 
           <div className="mt-6">
-            <ProductDetailActions product={product} />
+            {product.priceOnRequest ? (
+              <a
+                href={`mailto:?subject=${encodeURIComponent(
+                  `Enquiry: ${product.name} (SKU ${product.sku})`,
+                )}`}
+                className="inline-flex items-center gap-2 rounded-md bg-brand px-6 py-3 text-sm font-bold uppercase tracking-wide text-brand-foreground hover:bg-brand/90"
+              >
+                <Mail className="h-4 w-4" /> Product / Price Enquiry
+              </a>
+            ) : (
+              <ProductDetailActions product={product} />
+            )}
           </div>
 
           <ul className="mt-8 grid gap-3 sm:grid-cols-3 text-xs">
@@ -114,6 +144,12 @@ export default async function ProductPage({ params }: { params: RouteParams }) {
           </ul>
         </div>
       </div>
+
+      <ProductDetailTabs
+        description={product.description}
+        rating={product.rating}
+        reviewCount={product.reviewCount}
+      />
 
       {related.length > 0 ? (
         <section className="mt-16">

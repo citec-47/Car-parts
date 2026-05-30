@@ -22,6 +22,8 @@ export type ProductFormInitial = {
   isActive: boolean;
   isFeatured: boolean;
   isHotDeal: boolean;
+  priceOnRequest: boolean;
+  specs: { label: string; value: string }[];
   images: ExistingImage[];
 };
 
@@ -38,6 +40,16 @@ export function ProductForm({
 }) {
   const [pending, startTransition] = useTransition();
   const [files, setFiles] = useState<File[]>([]);
+  const [specs, setSpecs] = useState<{ label: string; value: string }[]>(
+    initial.specs.length > 0 ? initial.specs : [{ label: "", value: "" }],
+  );
+
+  const updateSpec = (i: number, field: "label" | "value", v: string) => {
+    setSpecs((prev) => prev.map((s, idx) => (idx === i ? { ...s, [field]: v } : s)));
+  };
+  const addSpecRow = () => setSpecs((prev) => [...prev, { label: "", value: "" }]);
+  const removeSpecRow = (i: number) =>
+    setSpecs((prev) => (prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev));
 
   const previews = files.map((f, i) => ({
     key: `${i}-${f.name}-${f.size}`,
@@ -132,6 +144,53 @@ export function ProductForm({
               defaultValue={initial.stock}
             />
           </div>
+        </section>
+
+        <section className="rounded-lg border border-border bg-card p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Specs</h3>
+            <span className="text-xs text-muted-foreground">
+              Shown in a table on the product page
+            </span>
+          </div>
+          <div className="space-y-2">
+            {specs.map((s, i) => (
+              <div key={i} className="flex gap-2">
+                <input
+                  type="text"
+                  name="specLabel"
+                  placeholder="Label (e.g. Engine Brand)"
+                  value={s.label}
+                  onChange={(e) => updateSpec(i, "label", e.target.value)}
+                  className="w-1/3 rounded-md border border-border bg-background px-3 py-2 text-sm"
+                />
+                <input
+                  type="text"
+                  name="specValue"
+                  placeholder="Value (e.g. Honda)"
+                  value={s.value}
+                  onChange={(e) => updateSpec(i, "value", e.target.value)}
+                  className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeSpecRow(i)}
+                  disabled={specs.length === 1}
+                  aria-label="Remove spec row"
+                  className="rounded-md border border-border px-2 text-muted-foreground hover:bg-muted disabled:opacity-40"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={addSpecRow}
+            className="mt-3 text-xs font-medium text-brand hover:underline"
+          >
+            + Add spec row
+          </button>
         </section>
 
         <section className="rounded-lg border border-border bg-card p-5">
@@ -239,6 +298,12 @@ export function ProductForm({
               defaultChecked={initial.isHotDeal}
               label="Hot deal"
               hint="Shown in Hot Deals on home page"
+            />
+            <Toggle
+              name="priceOnRequest"
+              defaultChecked={initial.priceOnRequest}
+              label="Contact for price"
+              hint="Hide price, show enquiry button"
             />
           </div>
         </section>

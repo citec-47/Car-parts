@@ -13,6 +13,8 @@ export type ProductImage = {
   altText: string | null;
 };
 
+export type ProductSpec = { label: string; value: string };
+
 export type Product = {
   id: string;
   name: string;
@@ -28,6 +30,8 @@ export type Product = {
   isFeatured: boolean;
   isHotDeal: boolean;
   hotDealEndsAt: Date | null;
+  priceOnRequest: boolean;
+  specs: ProductSpec[];
   categorySlug: string;
   images: ProductImage[];
 };

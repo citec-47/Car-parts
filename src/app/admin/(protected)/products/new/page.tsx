@@ -42,6 +42,8 @@ export default async function NewProductPage() {
           isActive: true,
           isFeatured: false,
           isHotDeal: false,
+          priceOnRequest: false,
+          specs: [],
           images: [],
         }}
       />

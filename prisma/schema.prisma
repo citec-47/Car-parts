@@ -49,6 +49,8 @@ model Product {
   isFeatured     Boolean @default(false)
   isHotDeal      Boolean @default(false)
   hotDealEndsAt  DateTime?
+  priceOnRequest Boolean @default(false)
+  specs          Json?
 
   categoryId String
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)

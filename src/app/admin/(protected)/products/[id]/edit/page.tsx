@@ -9,6 +9,16 @@ export const dynamic = "force-dynamic";
 
 type Params = Promise<{ id: string }>;
 
+function parseSpecsInitial(v: unknown): { label: string; value: string }[] {
+  if (!Array.isArray(v)) return [];
+  return v
+    .filter((s): s is { label: unknown; value: unknown } =>
+      typeof s === "object" && s !== null && "label" in s && "value" in s,
+    )
+    .map((s) => ({ label: String(s.label ?? ""), value: String(s.value ?? "") }))
+    .filter((s) => s.label && s.value);
+}
+
 export default async function EditProductPage({
   params,
 }: {
@@ -72,6 +82,8 @@ export default async function EditProductPage({
           isActive: product.isActive,
           isFeatured: product.isFeatured,
           isHotDeal: product.isHotDeal,
+          priceOnRequest: product.priceOnRequest,
+          specs: parseSpecsInitial(product.specs),
           images: product.images.map((i) => ({ id: i.id, url: i.url })),
         }}
       />

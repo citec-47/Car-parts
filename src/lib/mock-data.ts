@@ -41,6 +41,8 @@ export const MOCK_PRODUCTS: Product[] = [
     isHotDeal: true,
     hotDealEndsAt: HOT_DEAL_ENDS,
     categorySlug: "wheels-tires",
+    priceOnRequest: false,
+    specs: [],
     images: [{ id: "p_1_img", url: tireImg, altText: "Thunderer M/T tire" }],
   },
   {
@@ -59,6 +61,8 @@ export const MOCK_PRODUCTS: Product[] = [
     isHotDeal: false,
     hotDealEndsAt: null,
     categorySlug: "wheels-tires",
+    priceOnRequest: false,
+    specs: [],
     images: [{ id: "p_2_img", url: tireImg, altText: "Waterfall touring tire" }],
   },
   {
@@ -77,6 +81,8 @@ export const MOCK_PRODUCTS: Product[] = [
     isHotDeal: false,
     hotDealEndsAt: null,
     categorySlug: "wheels-tires",
+    priceOnRequest: false,
+    specs: [],
     images: [{ id: "p_3_img", url: tireImg, altText: "Westlake SUV tire" }],
   },
   {
@@ -95,6 +101,8 @@ export const MOCK_PRODUCTS: Product[] = [
     isHotDeal: false,
     hotDealEndsAt: null,
     categorySlug: "tools-garage",
+    priceOnRequest: false,
+    specs: [],
     images: [{ id: "p_4_img", url: wheelImg, altText: "Hydraulic jack stand" }],
   },
   {
@@ -113,6 +121,8 @@ export const MOCK_PRODUCTS: Product[] = [
     isHotDeal: false,
     hotDealEndsAt: null,
     categorySlug: "tools-garage",
+    priceOnRequest: false,
+    specs: [],
     images: [{ id: "p_5_img", url: engineImg, altText: "Pro-Lift creeper seat" }],
   },
   {
@@ -131,6 +141,8 @@ export const MOCK_PRODUCTS: Product[] = [
     isHotDeal: false,
     hotDealEndsAt: null,
     categorySlug: "lightings",
+    priceOnRequest: false,
+    specs: [],
     images: [{ id: "p_6_img", url: headlightImg, altText: "LED headlights" }],
   },
   {
@@ -150,6 +162,8 @@ export const MOCK_PRODUCTS: Product[] = [
     isHotDeal: false,
     hotDealEndsAt: null,
     categorySlug: "repair-parts",
+    priceOnRequest: false,
+    specs: [],
     images: [{ id: "p_7_img", url: brakeImg, altText: "PowerStop brake kit" }],
   },
   {
@@ -168,6 +182,8 @@ export const MOCK_PRODUCTS: Product[] = [
     isHotDeal: false,
     hotDealEndsAt: null,
     categorySlug: "body-parts",
+    priceOnRequest: false,
+    specs: [],
     images: [{ id: "p_8_img", url: placeholder("Bumper Lip"), altText: "Carbon fiber bumper lip" }],
   },
 ];

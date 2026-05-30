@@ -20,6 +20,17 @@ function dollarsToCents(value: string): number {
   return Math.round(n * 100);
 }
 
+function parseSpecsFromFormData(formData: FormData): { label: string; value: string }[] {
+  const labels = formData.getAll("specLabel").map((v) => String(v).trim());
+  const values = formData.getAll("specValue").map((v) => String(v).trim());
+  const out: { label: string; value: string }[] = [];
+  const n = Math.min(labels.length, values.length);
+  for (let i = 0; i < n; i++) {
+    if (labels[i] && values[i]) out.push({ label: labels[i], value: values[i] });
+  }
+  return out;
+}
+
 function bumpHome() {
   revalidatePath("/");
   revalidatePath("/admin");
@@ -56,6 +67,8 @@ export async function createProduct(formData: FormData) {
   const isActive = formData.get("isActive") === "on";
   const isFeatured = formData.get("isFeatured") === "on";
   const isHotDeal = formData.get("isHotDeal") === "on";
+  const priceOnRequest = formData.get("priceOnRequest") === "on";
+  const specs = parseSpecsFromFormData(formData);
 
   if (!name || !sku || !categoryId) {
     throw new Error("name, sku, and category are required");
@@ -77,6 +90,8 @@ export async function createProduct(formData: FormData) {
       isActive,
       isFeatured,
       isHotDeal,
+      priceOnRequest,
+      specs,
       categoryId,
       images: {
         create: uploaded.map((img, i) => ({
@@ -104,6 +119,8 @@ export async function updateProduct(productId: string, formData: FormData) {
   const isActive = formData.get("isActive") === "on";
   const isFeatured = formData.get("isFeatured") === "on";
   const isHotDeal = formData.get("isHotDeal") === "on";
+  const priceOnRequest = formData.get("priceOnRequest") === "on";
+  const specs = parseSpecsFromFormData(formData);
 
   if (!name || !sku || !categoryId) {
     throw new Error("name, sku, and category are required");
@@ -122,6 +139,8 @@ export async function updateProduct(productId: string, formData: FormData) {
       isActive,
       isFeatured,
       isHotDeal,
+      priceOnRequest,
+      specs,
       categoryId,
     },
   });

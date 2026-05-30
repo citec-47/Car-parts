@@ -5,11 +5,25 @@ import { prisma } from "./db";
 import type {
   Category,
   Product,
+  ProductSpec,
   VehicleEngineRow,
   VehicleMake,
   VehicleModel,
   VehicleYearRow,
 } from "./types";
+
+function parseSpecs(value: unknown): ProductSpec[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((s): s is { label: unknown; value: unknown } =>
+      typeof s === "object" && s !== null && "label" in s && "value" in s,
+    )
+    .map((s) => ({
+      label: String(s.label ?? ""),
+      value: String(s.value ?? ""),
+    }))
+    .filter((s) => s.label && s.value);
+}
 
 const productInclude = {
   category: { select: { slug: true } },
@@ -34,6 +48,8 @@ function toProduct(p: ProductWithRelations): Product {
     isFeatured: p.isFeatured,
     isHotDeal: p.isHotDeal,
     hotDealEndsAt: p.hotDealEndsAt,
+    priceOnRequest: p.priceOnRequest,
+    specs: parseSpecs(p.specs),
     categorySlug: p.category.slug,
     images: p.images.map((img) => ({
       id: img.id,
