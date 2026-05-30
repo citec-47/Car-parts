@@ -55,7 +55,25 @@ async function uploadImage(file: File): Promise<UploadedImage> {
   return { url: result.secure_url, publicId: result.public_id };
 }
 
-export async function createProduct(formData: FormData) {
+export type ProductActionResult = { error: string };
+
+function friendlyError(e: unknown): string {
+  const raw = e instanceof Error ? e.message : String(e);
+  if (/api_key|api_secret|cloud_name|Must supply/i.test(raw)) {
+    return "Image upload isn't configured on the server (missing Cloudinary credentials). The product was not saved.";
+  }
+  if (/Unique constraint|unique/i.test(raw)) {
+    return "A product with that SKU already exists. Use a different SKU.";
+  }
+  if (/closed the connection|ECONNREFUSED|ETIMEDOUT|connect/i.test(raw)) {
+    return "Couldn't reach the database — please try again in a moment.";
+  }
+  return raw || "Something went wrong while saving the product.";
+}
+
+export async function createProduct(
+  formData: FormData,
+): Promise<ProductActionResult | void> {
   const name = String(formData.get("name") ?? "").trim();
   const sku = String(formData.get("sku") ?? "").trim();
   const categoryId = String(formData.get("categoryId") ?? "");
@@ -72,37 +90,46 @@ export async function createProduct(formData: FormData) {
   const flowCategoryId = String(formData.get("flowCategoryId") ?? "");
 
   if (!name || !sku || !categoryId) {
-    throw new Error("name, sku, and category are required");
+    return { error: "Name, SKU, and category are all required." };
   }
 
   const files = formData.getAll("images").filter((f): f is File => f instanceof File && f.size > 0);
-  const uploaded = await Promise.all(files.map(uploadImage));
 
-  await prisma.product.create({
-    data: {
-      name,
-      slug: slugify(name) + "-" + Date.now().toString(36),
-      sku,
-      description,
-      brand,
-      priceCents: dollarsToCents(price),
-      salePriceCents: salePrice ? dollarsToCents(salePrice) : null,
-      stock: Number.isFinite(stock) ? Math.max(0, Math.floor(stock)) : 0,
-      isActive,
-      isFeatured,
-      isHotDeal,
-      priceOnRequest,
-      specs,
-      categoryId,
-      images: {
-        create: uploaded.map((img, i) => ({
-          url: img.url,
-          cloudinaryPublicId: img.publicId,
-          displayOrder: i,
-        })),
+  // Upload + write inside try/catch so any failure becomes a readable message
+  // (and a server log) instead of an opaque 500. redirect() stays OUTSIDE the
+  // block — it signals via a thrown NEXT_REDIRECT that catch would swallow.
+  try {
+    const uploaded = await Promise.all(files.map(uploadImage));
+
+    await prisma.product.create({
+      data: {
+        name,
+        slug: slugify(name) + "-" + Date.now().toString(36),
+        sku,
+        description,
+        brand,
+        priceCents: dollarsToCents(price),
+        salePriceCents: salePrice ? dollarsToCents(salePrice) : null,
+        stock: Number.isFinite(stock) ? Math.max(0, Math.floor(stock)) : 0,
+        isActive,
+        isFeatured,
+        isHotDeal,
+        priceOnRequest,
+        specs,
+        categoryId,
+        images: {
+          create: uploaded.map((img, i) => ({
+            url: img.url,
+            cloudinaryPublicId: img.publicId,
+            displayOrder: i,
+          })),
+        },
       },
-    },
-  });
+    });
+  } catch (e) {
+    console.error("createProduct failed:", e);
+    return { error: friendlyError(e) };
+  }
 
   bumpHome();
   if (flowCategoryId) {
@@ -113,7 +140,10 @@ export async function createProduct(formData: FormData) {
   redirect(`/admin/products?ok=created&name=${encodeURIComponent(name)}`);
 }
 
-export async function updateProduct(productId: string, formData: FormData) {
+export async function updateProduct(
+  productId: string,
+  formData: FormData,
+): Promise<ProductActionResult | void> {
   const name = String(formData.get("name") ?? "").trim();
   const sku = String(formData.get("sku") ?? "").trim();
   const categoryId = String(formData.get("categoryId") ?? "");
@@ -129,41 +159,48 @@ export async function updateProduct(productId: string, formData: FormData) {
   const specs = parseSpecsFromFormData(formData);
 
   if (!name || !sku || !categoryId) {
-    throw new Error("name, sku, and category are required");
+    return { error: "Name, SKU, and category are all required." };
   }
 
-  await prisma.product.update({
-    where: { id: productId },
-    data: {
-      name,
-      sku,
-      description,
-      brand,
-      priceCents: dollarsToCents(price),
-      salePriceCents: salePrice ? dollarsToCents(salePrice) : null,
-      stock: Number.isFinite(stock) ? Math.max(0, Math.floor(stock)) : 0,
-      isActive,
-      isFeatured,
-      isHotDeal,
-      priceOnRequest,
-      specs,
-      categoryId,
-    },
-  });
-
-  // New images (if any) are appended.
-  const files = formData.getAll("images").filter((f): f is File => f instanceof File && f.size > 0);
-  if (files.length) {
-    const uploaded = await Promise.all(files.map(uploadImage));
-    const existingCount = await prisma.productImage.count({ where: { productId } });
-    await prisma.productImage.createMany({
-      data: uploaded.map((img, i) => ({
-        productId,
-        url: img.url,
-        cloudinaryPublicId: img.publicId,
-        displayOrder: existingCount + i,
-      })),
+  try {
+    await prisma.product.update({
+      where: { id: productId },
+      data: {
+        name,
+        sku,
+        description,
+        brand,
+        priceCents: dollarsToCents(price),
+        salePriceCents: salePrice ? dollarsToCents(salePrice) : null,
+        stock: Number.isFinite(stock) ? Math.max(0, Math.floor(stock)) : 0,
+        isActive,
+        isFeatured,
+        isHotDeal,
+        priceOnRequest,
+        specs,
+        categoryId,
+      },
     });
+
+    // New images (if any) are appended.
+    const files = formData
+      .getAll("images")
+      .filter((f): f is File => f instanceof File && f.size > 0);
+    if (files.length) {
+      const uploaded = await Promise.all(files.map(uploadImage));
+      const existingCount = await prisma.productImage.count({ where: { productId } });
+      await prisma.productImage.createMany({
+        data: uploaded.map((img, i) => ({
+          productId,
+          url: img.url,
+          cloudinaryPublicId: img.publicId,
+          displayOrder: existingCount + i,
+        })),
+      });
+    }
+  } catch (e) {
+    console.error("updateProduct failed:", e);
+    return { error: friendlyError(e) };
   }
 
   bumpHome();

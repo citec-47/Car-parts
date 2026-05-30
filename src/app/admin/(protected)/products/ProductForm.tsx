@@ -60,7 +60,7 @@ export function ProductForm({
 }: {
   initial: ProductFormInitial;
   categories: Category[];
-  action: (formData: FormData) => Promise<void> | void;
+  action: (formData: FormData) => Promise<{ error?: string } | void> | void;
   submitLabel: string;
   lockedCategoryId?: string;
   flowCategoryId?: string;
@@ -68,6 +68,7 @@ export function ProductForm({
   const [pending, startTransition] = useTransition();
   const [files, setFiles] = useState<File[]>([]);
   const [pasteError, setPasteError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [specs, setSpecs] = useState<{ label: string; value: string }[]>(
     initial.specs.length > 0 ? initial.specs : [{ label: "", value: "" }],
   );
@@ -247,14 +248,23 @@ export function ProductForm({
     for (const file of files) {
       formData.append("images", file);
     }
+    setSubmitError(null);
     startTransition(async () => {
       try {
-        await action(formData);
+        const result = await action(formData);
+        if (result && typeof result === "object" && "error" in result && result.error) {
+          // Server reported a problem (validation, image upload, DB). Show it
+          // and keep the draft so the admin can fix and retry.
+          setSubmitError(result.error);
+          return;
+        }
         // Success (incl. redirect) — drop the saved draft.
         clearDraft();
       } catch {
-        // Submission failed (e.g. connection dropped). Keep the draft so the
-        // admin can retry without re-entering everything.
+        // Network/transport failure (e.g. connection dropped mid-submit).
+        setSubmitError(
+          "Couldn't reach the server. Your entries are saved on this device — check your connection and try again.",
+        );
       }
     });
   };
@@ -520,6 +530,11 @@ export function ProductForm({
           </div>
         </section>
 
+        {submitError ? (
+          <div className="rounded-md border border-red-300 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+            {submitError}
+          </div>
+        ) : null}
         <button
           type="submit"
           disabled={pending}
