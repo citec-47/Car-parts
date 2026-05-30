@@ -32,11 +32,15 @@ export function ProductForm({
   categories,
   action,
   submitLabel,
+  lockedCategoryId,
+  flowCategoryId,
 }: {
   initial: ProductFormInitial;
   categories: Category[];
   action: (formData: FormData) => Promise<void> | void;
   submitLabel: string;
+  lockedCategoryId?: string;
+  flowCategoryId?: string;
 }) {
   const [pending, startTransition] = useTransition();
   const [files, setFiles] = useState<File[]>([]);
@@ -266,21 +270,39 @@ export function ProductForm({
       </div>
 
       <aside className="space-y-6">
+        {flowCategoryId ? (
+          <input type="hidden" name="flowCategoryId" value={flowCategoryId} />
+        ) : null}
         <section className="rounded-lg border border-border bg-card p-5">
           <h3 className="text-sm font-semibold mb-4">Category</h3>
-          <select
-            name="categoryId"
-            required
-            defaultValue={initial.categoryId}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-          >
-            <option value="">Choose a category…</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+          {lockedCategoryId ? (
+            <>
+              <input type="hidden" name="categoryId" value={lockedCategoryId} />
+              <div className="rounded-md border border-brand/30 bg-brand/5 px-3 py-2 text-sm">
+                <span className="font-semibold text-brand">
+                  {categories.find((c) => c.id === lockedCategoryId)?.name ?? "Selected"}
+                </span>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  Locked by workflow — change category by editing the product after publish.
+                </p>
+              </div>
+            </>
+          ) : (
+            <select
+              name="categoryId"
+              required
+              aria-label="Category"
+              defaultValue={initial.categoryId}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            >
+              <option value="">Choose a category…</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          )}
         </section>
 
         <section className="rounded-lg border border-border bg-card p-5">

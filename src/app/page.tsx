@@ -1,6 +1,5 @@
 import { HeroSection } from "@/components/home/HeroSection";
 import { StatsStrip } from "@/components/home/StatsStrip";
-import { VehicleFinder } from "@/components/home/VehicleFinder";
 import { WhyBuyFromUs } from "@/components/home/WhyBuyFromUs";
 import { FeaturedEngineOfTheWeek } from "@/components/home/FeaturedEngineOfTheWeek";
 import { ShopByMake } from "@/components/home/ShopByMake";
@@ -8,22 +7,10 @@ import { PopularCategories } from "@/components/home/PopularCategories";
 import { HotDeals } from "@/components/home/HotDeals";
 import { FeaturedProducts } from "@/components/home/FeaturedProducts";
 import { OfferBar } from "@/components/home/OfferBar";
-import {
-  getAllProducts,
-  getAllVehicleModels,
-  getAllVehicleYears,
-  getFeaturedProducts,
-  getHotDealProducts,
-  getVehicleEngines,
-  getVehicleMakes,
-} from "@/lib/data";
+import { getAllProducts, getFeaturedProducts, getHotDealProducts } from "@/lib/data";
 
 export default async function Home() {
-  const [makes, models, years, engines, featured, hotDeals, all] = await Promise.all([
-    getVehicleMakes(),
-    getAllVehicleModels(),
-    getAllVehicleYears(),
-    getVehicleEngines(),
+  const [featured, hotDeals, all] = await Promise.all([
     getFeaturedProducts(),
     getHotDealProducts(),
     getAllProducts(),
@@ -33,9 +20,6 @@ export default async function Home() {
     <>
       <HeroSection />
       <StatsStrip />
-      <div id="vehicle-finder">
-        <VehicleFinder makes={makes} models={models} years={years} engines={engines} />
-      </div>
       <FeaturedEngineOfTheWeek />
       <WhyBuyFromUs />
       <ShopByMake />

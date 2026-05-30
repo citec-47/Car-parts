@@ -69,6 +69,7 @@ export async function createProduct(formData: FormData) {
   const isHotDeal = formData.get("isHotDeal") === "on";
   const priceOnRequest = formData.get("priceOnRequest") === "on";
   const specs = parseSpecsFromFormData(formData);
+  const flowCategoryId = String(formData.get("flowCategoryId") ?? "");
 
   if (!name || !sku || !categoryId) {
     throw new Error("name, sku, and category are required");
@@ -104,6 +105,11 @@ export async function createProduct(formData: FormData) {
   });
 
   bumpHome();
+  if (flowCategoryId) {
+    redirect(
+      `/admin/categories/${flowCategoryId}/products?ok=product-created&name=${encodeURIComponent(name)}`,
+    );
+  }
   redirect(`/admin/products?ok=created&name=${encodeURIComponent(name)}`);
 }
 
@@ -249,12 +255,14 @@ export async function createCategory(formData: FormData) {
     ? Math.max(0, Math.floor(Number(orderRaw)))
     : (await prisma.category.count()) * 10;
 
-  await prisma.category.create({
+  const created = await prisma.category.create({
     data: { name, slug, iconKey, description, displayOrder, showInFooter },
   });
 
   bumpCategories();
-  redirect("/admin/categories?ok=created");
+  // Drop the admin into the category's product workflow page so they can add
+  // products to it right away.
+  redirect(`/admin/categories/${created.id}/products?ok=category-created`);
 }
 
 export async function updateCategory(categoryId: string, formData: FormData) {

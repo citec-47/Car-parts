@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Search } from "lucide-react";
+import { ArrowRight, FileText } from "lucide-react";
 
 const HERO_BG =
   "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=2000&h=1200&fit=crop&auto=format&q=80";
@@ -69,13 +69,13 @@ export function HeroSection() {
               Browse Engines
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
-            <a
-              href="#vehicle-finder"
+            <Link
+              href="/quotation"
               className="group inline-flex items-center gap-2 rounded-md border border-white/20 bg-white/5 px-7 py-3.5 text-sm font-bold uppercase tracking-wider text-white backdrop-blur transition-colors hover:bg-white/10"
             >
-              <Search className="h-4 w-4" />
-              Find My Vehicle
-            </a>
+              <FileText className="h-4 w-4" />
+              Request a Quote
+            </Link>
           </div>
 
           {/* Quick badges */}
